@@ -146,6 +146,63 @@
             box-shadow: inset 0 1px 2px rgba(0,0,0,0.05);
             background-color: white; /* 确保输入框背景是白色 */
         }
+        /* 新增对话相关样式 */
+        #dialogueSimulationSection {
+            margin-top: 2rem;
+            padding: 1.5rem;
+            background-color: #e0f2fe; /* Light blue background */
+            border: 1px solid #7dd3fc; /* Sky blue border */
+            border-radius: 8px;
+        }
+        #dialogueDisplayArea {
+            margin-top: 1.5rem;
+            padding: 1.5rem;
+            background-color: #f0f9ff; /* Very light blue */
+            border-radius: 8px;
+            border: 1px solid #e0f2fe;
+        }
+        .dialogue-topic {
+            font-size: 1.125rem; /* 18px */
+            font-weight: 600;
+            color: #0c4a6e; /* Darker blue */
+            margin-top: 1rem;
+            margin-bottom: 0.75rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid #bae6fd; /* Light blue underline */
+        }
+        .dialogue-topic:first-child {
+            margin-top: 0;
+        }
+        .dialogue-turn {
+            margin-bottom: 0.75rem;
+            padding: 0.5rem;
+            border-radius: 6px;
+        }
+        .dialogue-turn .speaker-name {
+            font-weight: 600;
+            color: #075985; /* Slightly darker blue for speaker name */
+        }
+        .dialogue-turn .utterance {
+            color: #374151; /* Dark gray for utterance */
+            margin-left: 0.5rem;
+            display: block; /* Ensure utterance is on new line if needed */
+        }
+        .dialogue-turn.person1 {
+             background-color: #f0f9ff; /* Light blue for person1 */
+             text-align: left;
+        }
+        .dialogue-turn.person2 {
+             background-color: #fefce8; /* Light yellow for person2 */
+             text-align: left; /* Keep left for readability, or 'right' for chat bubble style */
+        }
+        textarea#dialogueTopics {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #94a3b8;
+            border-radius: 6px;
+            min-height: 80px;
+            font-size: 0.875rem;
+        }
     </style>
 </head>
 <body class="antialiased">
@@ -214,7 +271,7 @@
 
         <div class="text-center mb-10">
             <button id="analyzeButton" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-10 rounded-lg shadow-lg text-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50">
-                开始分析
+                分析特征与匹配度
             </button>
         </div>
 
@@ -241,6 +298,10 @@
                 <div id="compatibilityExplanation" class="result-text mt-4"></div>
             </div>
         </div>
+
+        <div id="dialogueDisplayArea" class="hidden result-card">
+            <h3 class="result-title text-center">模拟对话记录</h3>
+            </div>
         
         <div id="errorArea" class="hidden result-card bg-red-50 border-red-400 mt-6">
              <h3 class="result-title text-red-700">发生错误</h3>
@@ -289,6 +350,13 @@
         const compatibilityExplanationDiv = document.getElementById('compatibilityExplanation');
         const errorArea = document.getElementById('errorArea');
         const errorMessageP = document.getElementById('errorMessage');
+        // 新增对话相关DOM元素
+        // const dialogueSimulationSection = document.getElementById('dialogueSimulationSection');
+        const dialogueTopicsInput = document.getElementById('dialogueTopics');
+        const person1NameInput = document.getElementById('person1NameInput');
+        const person2NameInput = document.getElementById('person2NameInput');
+        const simulateDialogueButton = document.getElementById('simulateDialogueButton');
+        const dialogueDisplayArea = document.getElementById('dialogueDisplayArea');
 
         let image1Base64 = null;
         let image2Base64 = null;
@@ -339,6 +407,7 @@
 
             loadingIndicator.classList.remove('hidden');
             resultsArea.classList.add('hidden');
+            dialogueDisplayArea.classList.add('hidden'); 
             errorArea.classList.add('hidden');
             analyzeButton.disabled = true;
             analyzeButton.classList.add('opacity-50', 'cursor-not-allowed');
@@ -361,8 +430,13 @@
                 if (hobbies2) payload.hobbies2 = hobbies2;
                 if (personality2) payload.personality2 = personality2;
 
-                console.log("发送到后端的数据:", payload);
+                const person1Name =  "人物1";
+                const person2Name =  "人物2";
+                showLoading(true, "模拟对话中...");
+                dialogueDisplayArea.classList.add('hidden'); // 隐藏旧对话
+                errorArea.classList.add('hidden');
 
+                console.log("发送到后端的数据:", payload);
 
                 const response = await fetch(BACKEND_API_URL, {
                     method: 'POST',
@@ -389,7 +463,8 @@
                 // Make sure to pass the full analysis objects to the UI update
                 updatePersonAnalysisUI(person1AnalysisDiv, results.person1_analysis, "人物 1");
                 updatePersonAnalysisUI(person2AnalysisDiv, results.person2_analysis, "人物 2");
-                
+                const dialogueResults = results.dialogue;
+                renderDialogueResults(dialogueResults);
                 if (results.compatibility_result) {
                     updateCompatibilityUI(
                         results.compatibility_result.compatibility_score,
@@ -404,13 +479,35 @@
                 console.error("分析过程中发生错误:", err);
                 showError(err.message || "分析过程中发生未知网络或服务器错误。请检查后端服务是否运行，以及网络连接。");
             } finally {
+                showLoading(false);
+                // loadingIndicator.classList.add('hidden');
+                // analyzeButton.disabled = false;
+                // analyzeButton.classList.remove('opacity-50', 'cursor-not-allowed');
+                // analyzeButton.textContent = "开始分析";
+            }
+        });
+        
+        function showLoading(isLoading, message = "AI 正在分析中，请稍候...") {
+            if (isLoading) {
+                loadingIndicator.classList.remove('hidden');
+                loadingIndicator.querySelector('p').textContent = message;
+                analyzeButton.disabled = true;
+                analyzeButton.classList.add('opacity-50', 'cursor-not-allowed');
+                if(simulateDialogueButton) {
+                    simulateDialogueButton.disabled = true;
+                    simulateDialogueButton.classList.add('opacity-50', 'cursor-not-allowed');
+                }
+            } else {
                 loadingIndicator.classList.add('hidden');
                 analyzeButton.disabled = false;
                 analyzeButton.classList.remove('opacity-50', 'cursor-not-allowed');
                 analyzeButton.textContent = "开始分析";
+                 if(simulateDialogueButton) {
+                    simulateDialogueButton.disabled = false;
+                    simulateDialogueButton.classList.remove('opacity-50', 'cursor-not-allowed');
+                }
             }
-        });
-
+        }
         // --- UI Update Functions ---
         function updatePersonAnalysisUI(element, analysis, personLabel) {
             if (!analysis) {
@@ -448,6 +545,50 @@
             const sanitize = (str) => str ? String(str).replace(/</g, "&lt;").replace(/>/g, "&gt;") : '';
             compatibilityScoreDiv.textContent = (score !== null && score !== undefined) ? `${sanitize(String(score))}%` : 'N/A';
             compatibilityExplanationDiv.innerHTML = `<p>${sanitize(explanation) || '未能生成匹配说明。'}</p>`;
+        }
+
+        function renderDialogueResults(dialogueData) {
+            dialogueDisplayArea.innerHTML = '<h3 class="result-title text-center">模拟对话记录</h3>'; // 清空并添加标题
+            if (!dialogueData || !dialogueData.dialogues_by_topic || dialogueData.dialogues_by_topic.length === 0) {
+                dialogueDisplayArea.innerHTML += '<p class="text-slate-500 text-center">未能生成对话内容。</p>';
+                dialogueDisplayArea.classList.remove('hidden');
+                return;
+            }
+
+            dialogueData.dialogues_by_topic.forEach(topicData => {
+                const topicDiv = document.createElement('div');
+                topicDiv.innerHTML = `<h4 class="dialogue-topic">${sanitizeHTML(topicData.topic)}</h4>`;
+                
+                const historyDiv = document.createElement('div');
+                topicData.dialogue_history.forEach(turn => {
+                    const turnDiv = document.createElement('div');
+                    turnDiv.classList.add('dialogue-turn');
+                    // 根据 speaker_id 添加不同的样式，用于区分发言者
+                    // 后端返回的 dialogueData 中应该有 person1_name_used 和 person2_name_used
+                    // 我们需要判断 turn.speaker_name 是 person1_name_used 还是 person2_name_used
+                    if (turn.speaker_name === dialogueData.person1_name_used) {
+                        turnDiv.classList.add('person1');
+                    } else if (turn.speaker_name === dialogueData.person2_name_used) {
+                        turnDiv.classList.add('person2');
+                    }
+
+                    turnDiv.innerHTML = `
+                        <span class="speaker-name">${sanitizeHTML(turn.speaker_name)}:</span>
+                        <span class="utterance">${sanitizeHTML(turn.utterance)}</span>
+                    `;
+                    historyDiv.appendChild(turnDiv);
+                });
+                topicDiv.appendChild(historyDiv);
+                dialogueDisplayArea.appendChild(topicDiv);
+            });
+            dialogueDisplayArea.classList.remove('hidden');
+        }
+
+        function sanitizeHTML(str) {
+            if (!str) return '';
+            const temp = document.createElement('div');
+            temp.textContent = str;
+            return temp.innerHTML;
         }
 
         function showError(message) {
