@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI情侣匹配度与对话模拟器</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f2f5; 
+            color: #334155; 
+        }
+        .container {
+            max-width: 900px;
+            margin: 2rem auto;
+            padding: 2rem;
+            background-color: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        }
+        .upload-box {
+            border: 2px dashed #cbd5e1; 
+            padding: 1.5rem; /* Reduced padding */
+            text-align: center;
+            border-radius: 8px;
+            background-color: #f8fafc; 
+            transition: background-color 0.3s ease, border-color 0.3s ease;
+            margin-bottom: 1rem; 
+        }
+        .upload-box:hover {
+            background-color: #f1f5f9;
+            border-color: #94a3b8;
+        }
+        .image-preview {
+            width: 100%;
+            max-width: 200px; /* Reduced max-width */
+            height: 200px; 
+            object-fit: cover; 
+            margin-top: 1rem;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0; 
+            background-color: #e2e8f0; 
+        }
+        .result-card {
+            background-color: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-top: 1.5rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        }
+        .result-title {
+            font-size: 1.25rem; 
+            font-weight: 600;
+            color: #1e293b; 
+            margin-bottom: 0.75rem;
+        }
+        .result-text p, .result-text li {
+            margin-bottom: 0.5rem;
+            color: #475569; 
+            line-height: 1.6;
+        }
+        .compatibility-score {
+            font-size: 3.5rem; 
+            font-weight: 700;
+            color: #059669; 
+            text-align: center;
+            margin: 1.5rem 0;
+            padding: 1rem;
+            background-color: #e6fef2; 
+            border-radius: 8px;
+            display: inline-block; 
+        }
+        .loader {
+            border: 5px solid #e2e8f0; 
+            border-top: 5px solid #4f46e5; 
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 2rem auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .disclaimer {
+            font-size: 0.875rem; 
+            color: #64748b; 
+            margin-top: 2.5rem;
+            padding: 1.25rem;
+            background-color: #fffbeb; 
+            border: 1px solid #fef08a; 
+            border-radius: 8px;
+        }
+        .disclaimer h4 { color: #b45309; } 
+
+        button {
+            transition: background-color 0.2s ease-out, transform 0.1s ease-out;
+        }
+        button:hover {
+            opacity: 0.9;
+        }
+        button:active {
+            transform: scale(0.97);
+        }
+        .file-input-button { 
+            display: inline-block;
+            padding: 0.5rem 1rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: white;
+            background-color: #4f46e5; 
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background-color 0.2s ease-out;
+        }
+        .file-input-button:hover {
+            background-color: #4338ca; 
+        }
+        input[type="file"] {
+            display: none; 
+        }
+        .file-name {
+            margin-top: 0.5rem;
+            font-size: 0.875rem;
+            color: #64748b;
+            height: 1.25rem; /* Fixed height to prevent layout shift */
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .birthday-input-label {
+            display: block;
+            text-align: left;
+            margin-top: 1rem;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: #334155;
+        }
+        .birthday-input {
+            width: 100%;
+            padding: 0.5rem 0.75rem;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            font-size: 0.875rem;
+            color: #334155;
+            box-shadow: inset 0 1px 2px rgba(0,0,0,0.05);
+        }
+        /* 新增对话相关样式 */
+        #dialogueSimulationSection {
+            margin-top: 2rem;
+            padding: 1.5rem;
+            background-color: #e0f2fe; /* Light blue background */
+            border: 1px solid #7dd3fc; /* Sky blue border */
+            border-radius: 8px;
+        }
+        #dialogueDisplayArea {
+            margin-top: 1.5rem;
+            padding: 1.5rem;
+            background-color: #f0f9ff; /* Very light blue */
+            border-radius: 8px;
+            border: 1px solid #e0f2fe;
+        }
+        .dialogue-topic {
+            font-size: 1.125rem; /* 18px */
+            font-weight: 600;
+            color: #0c4a6e; /* Darker blue */
+            margin-top: 1rem;
+            margin-bottom: 0.75rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid #bae6fd; /* Light blue underline */
+        }
+        .dialogue-topic:first-child {
+            margin-top: 0;
+        }
+        .dialogue-turn {
+            margin-bottom: 0.75rem;
+            padding: 0.5rem;
+            border-radius: 6px;
+        }
+        .dialogue-turn .speaker-name {
+            font-weight: 600;
+            color: #075985; /* Slightly darker blue for speaker name */
+        }
+        .dialogue-turn .utterance {
+            color: #374151; /* Dark gray for utterance */
+            margin-left: 0.5rem;
+            display: block; /* Ensure utterance is on new line if needed */
+        }
+        .dialogue-turn.person1 {
+             background-color: #f0f9ff; /* Light blue for person1 */
+             text-align: left;
+        }
+        .dialogue-turn.person2 {
+             background-color: #fefce8; /* Light yellow for person2 */
+             text-align: left; /* Keep left for readability, or 'right' for chat bubble style */
+        }
+        textarea#dialogueTopics {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #94a3b8;
+            border-radius: 6px;
+            min-height: 80px;
+            font-size: 0.875rem;
+        }
+    </style>
+</head>
+<body class="antialiased">
+    <div class="container">
+        <header class="text-center mb-10">
+            <h1 class="text-4xl font-bold text-slate-800">AI情侣匹配度与对话模拟器</h1>
+            <p class="text-slate-600 mt-3 text-lg">上传图片、输入生日，AI分析特征、匹配度，并模拟情侣对话（本结果仅供娱乐）。</p>
+        </header>
+
+        <div class="grid md:grid-cols-2 gap-x-8 gap-y-6 mb-8">
+            <div>
+                <h2 class="text-2xl font-semibold text-slate-700 mb-3">第一位</h2>
+                <div class="upload-box" id="uploadBox1">
+                    <label for="imageUpload1" class="file-input-button">选择图片</label>
+                    <input type="file" id="imageUpload1" accept="image/*"/>
+                    <p id="fileName1" class="file-name">未选择文件</p>
+                    <img id="imagePreview1" src="https://placehold.co/200x200/e2e8f0/94a3b8?text=图片1" alt="图片1预览" class="image-preview"/>
+                </div>
+                <div>
+                    <label for="birthday1" class="birthday-input-label">生日 (可选):</label>
+                    <input type="date" id="birthday1" name="birthday1" class="birthday-input">
+                </div>
+            </div>
+            <div>
+                <h2 class="text-2xl font-semibold text-slate-700 mb-3">第二位</h2>
+                <div class="upload-box" id="uploadBox2">
+                     <label for="imageUpload2" class="file-input-button">选择图片</label>
+                    <input type="file" id="imageUpload2" accept="image/*"/>
+                    <p id="fileName2" class="file-name">未选择文件</p>
+                    <img id="imagePreview2" src="https://placehold.co/200x200/e2e8f0/94a3b8?text=图片2" alt="图片2预览" class="image-preview"/>
+                </div>
+                <div>
+                    <label for="birthday2" class="birthday-input-label">生日 (可选):</label>
+                    <input type="date" id="birthday2" name="birthday2" class="birthday-input">
+                </div>
+            </div>
+        </div>
+
+        <div class="text-center mb-10">
+            <button id="analyzeButton" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-10 rounded-lg shadow-lg text-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50">
+                分析特征与匹配度
+            </button>
+        </div>
+
+        <div id="loadingIndicator" class="hidden text-center">
+            <div class="loader"></div>
+            <p class="text-slate-600 mt-2">AI 正在分析中，请稍候...</p>
+        </div>
+
+        <div id="resultsArea" class="hidden">
+            <div class="grid md:grid-cols-2 gap-8">
+                <div id="person1ResultCard" class="result-card">
+                    <h3 class="result-title">人物 1 分析结果</h3>
+                    <div id="person1Analysis" class="result-text"></div>
+                </div>
+                <div id="person2ResultCard" class="result-card">
+                    <h3 class="result-title">人物 2 分析结果</h3>
+                    <div id="person2Analysis" class="result-text"></div>
+                </div>
+            </div>
+            <div id="compatibilityResultCard" class="result-card mt-8 text-center">
+                <h3 class="result-title">情侣匹配度分析</h3>
+                <div id="compatibilityScoreWrapper" class="inline-block">
+                    <div id="compatibilityScore" class="compatibility-score">N/A</div>
+                </div>
+                <div id="compatibilityExplanation" class="result-text mt-4"></div>
+            </div>
+        </div>
+        
+        <!-- <div id="dialogueSimulationSection" class="hidden result-card">
+            <h3 class="result-title text-center">情侣对话模拟</h3>
+            <div class="mb-4">
+                <label for="dialogueTopics" class="block text-sm font-medium text-slate-700 mb-1">输入对话主题 (每行一个主题):</label>
+                <textarea id="dialogueTopics" rows="3" placeholder="例如：&#10;我们第一次约会的回忆&#10;一起计划一个梦想假期&#10;我们对未来的期望" class="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-slate-300 rounded-md"></textarea>
+            </div>
+             <div class="mb-4">
+                <label for="person1NameInput" class="block text-sm font-medium text-slate-700 mb-1">人物1昵称 (可选):</label>
+                <input type="text" id="person1NameInput" placeholder="例如：小明" class="birthday-input">
+            </div>
+            <div class="mb-4">
+                <label for="person2NameInput" class="block text-sm font-medium text-slate-700 mb-1">人物2昵称 (可选):</label>
+                <input type="text" id="person2NameInput" placeholder="例如：小红" class="birthday-input">
+            </div>
+            <div class="text-center">
+                <button id="simulateDialogueButton" class="bg-sky-500 hover:bg-sky-600 text-white font-bold py-2 px-6 rounded-lg shadow-md text-md">
+                    开始模拟对话
+                </button>
+            </div>
+        </div> -->
+
+        <div id="dialogueDisplayArea" class="hidden result-card">
+            <h3 class="result-title text-center">模拟对话记录</h3>
+            </div>
+
+
+        <div id="errorArea" class="hidden result-card bg-red-50 border-red-400 mt-6">
+             <h3 class="result-title text-red-700">发生错误</h3>
+             <p id="errorMessage" class="text-red-600"></p>
+        </div>
+
+        <div class="disclaimer">
+            <h4 class="font-semibold text-yellow-800 mb-2">重要声明：</h4>
+            <ul class="list-disc list-inside space-y-1 text-yellow-700">
+                <li>本应用结果仅供娱乐，不构成任何专业建议。</li>
+                <li>"生辰八字"相关特征是基于视觉的虚构创作。生日信息仅用于丰富趣味性。</li>
+                <li>性别猜测基于AI的视觉感知，可能不准确。</li>
+                <li>请勿上传涉及个人隐私或敏感内容的图片。我们不会在服务器上存储您上传的图片数据或生日信息。</li>
+                <li>AI分析与对话可能存在主观性和局限性，请理性看待结果。</li>
+            </ul>
+        </div>
+        <footer class="text-center mt-10 text-sm text-slate-500">
+            <p>LangChain/OpenAI 概念演示 (前后端分离架构)</p>
+        </footer>
+    </div>
+
+    <script>
+        // --- DOM Elements ---
+        const imageUpload1 = document.getElementById('imageUpload1');
+        const imagePreview1 = document.getElementById('imagePreview1');
+        const fileName1 = document.getElementById('fileName1');
+        const birthday1Input = document.getElementById('birthday1'); 
+
+        const imageUpload2 = document.getElementById('imageUpload2');
+        const imagePreview2 = document.getElementById('imagePreview2');
+        const fileName2 = document.getElementById('fileName2');
+        const birthday2Input = document.getElementById('birthday2'); 
+
+        const analyzeButton = document.getElementById('analyzeButton');
+        const loadingIndicator = document.getElementById('loadingIndicator');
+        const resultsArea = document.getElementById('resultsArea');
+        const person1AnalysisDiv = document.getElementById('person1Analysis');
+        const person2AnalysisDiv = document.getElementById('person2Analysis');
+        const compatibilityScoreDiv = document.getElementById('compatibilityScore');
+        const compatibilityExplanationDiv = document.getElementById('compatibilityExplanation');
+        
+        const errorArea = document.getElementById('errorArea');
+        const errorMessageP = document.getElementById('errorMessage');
+
+        // 新增对话相关DOM元素
+        // const dialogueSimulationSection = document.getElementById('dialogueSimulationSection');
+        const dialogueTopicsInput = document.getElementById('dialogueTopics');
+        const person1NameInput = document.getElementById('person1NameInput');
+        const person2NameInput = document.getElementById('person2NameInput');
+        const simulateDialogueButton = document.getElementById('simulateDialogueButton');
+        const dialogueDisplayArea = document.getElementById('dialogueDisplayArea');
+
+
+        let image1Base64 = null;
+        let image2Base64 = null;
+        let currentPerson1Analysis = null; // 用于存储人物1的分析结果
+        let currentPerson2Analysis = null; // 用于存储人物2的分析结果
+
+
+        const BACKEND_API_URL_ANALYZE = 'http://localhost:5001/api/analyze_couple'; 
+
+
+        function setupImagePreview(uploadElement, previewElement, fileNameElement, base64VarSetter) {
+            uploadElement.addEventListener('change', (event) => {
+                const file = event.target.files[0];
+                if (file) {
+                    fileNameElement.textContent = file.name.length > 30 ? file.name.substring(0,27) + "..." : file.name;
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        previewElement.src = e.target.result;
+                        base64VarSetter(e.target.result.split(',')[1]); 
+                    }
+                    reader.readAsDataURL(file);
+                    resultsArea.classList.add('hidden'); 
+                    // dialogueSimulationSection.classList.add('hidden'); // 隐藏对话输入
+                    dialogueDisplayArea.classList.add('hidden');    // 隐藏旧对话结果
+                    errorArea.classList.add('hidden'); 
+                } else {
+                    previewElement.src = `https://placehold.co/200x200/e2e8f0/94a3b8?text=图片预览`;
+                    fileNameElement.textContent = "未选择文件";
+                    base64VarSetter(null);
+                }
+            });
+        }
+        setupImagePreview(imageUpload1, imagePreview1, fileName1, (val) => image1Base64 = val);
+        setupImagePreview(imageUpload2, imagePreview2, fileName2, (val) => image2Base64 = val);
+        
+        analyzeButton.addEventListener('click', async () => {
+            if (!image1Base64 || !image2Base64) {
+                showError("请先上传两张图片。");
+                return;
+            }
+
+            const birthday1 = birthday1Input.value; 
+            const birthday2 = birthday2Input.value; 
+
+            showLoading(true, "分析特征与匹配度中...");
+            resultsArea.classList.add('hidden');
+            // dialogueSimulationSection.classList.add('hidden');
+            dialogueDisplayArea.classList.add('hidden');  
+            errorArea.classList.add('hidden');
+
+
+            try {
+                const payload = {
+                    image1_base64: image1Base64,
+                    image2_base64: image2Base64,
+                };
+                if (birthday1) payload.birthday1 = birthday1;
+                if (birthday2) payload.birthday2 = birthday2;
+
+                // const person1Name = person1NameInput.value.trim() || "人物1";
+                // const person2Name = person2NameInput.value.trim() || "人物2";
+                const person1Name =  "人物1";
+                const person2Name =  "人物2";
+                showLoading(true, "模拟对话中...");
+                dialogueDisplayArea.classList.add('hidden'); // 隐藏旧对话
+                errorArea.classList.add('hidden');
+                
+                const response = await fetch(BACKEND_API_URL_ANALYZE, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(payload),
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({error: `服务器错误: ${response.status}`}));
+                    throw new Error(errorData.error || `服务器返回错误，状态码: ${response.status}`);
+                }
+                const results = await response.json();
+
+                
+                currentPerson1Analysis = results.person1_analysis; // 存储分析结果
+                currentPerson2Analysis = results.person2_analysis; // 存储分析结果
+                
+                updatePersonAnalysisUI(person1AnalysisDiv, results.person1_analysis, "人物 1");
+                updatePersonAnalysisUI(person2AnalysisDiv, results.person2_analysis, "人物 2");
+                const dialogueResults = results.dialogue;
+                renderDialogueResults(dialogueResults);
+                if (results.compatibility_result) {
+                    updateCompatibilityUI(
+                        results.compatibility_result.compatibility_score,
+                        results.compatibility_result.compatibility_explanation
+                    );
+                } else {
+                     updateCompatibilityUI(null, "未能获取匹配度结果。");
+                }
+                resultsArea.classList.remove('hidden');
+                // dialogueSimulationSection.classList.remove('hidden'); // 显示对话模拟输入区域
+
+            } catch (err) {
+                console.error("特征分析过程中发生错误:", err);
+                console.error("对话模拟过程中发生错误:", err);
+                showError(err.message);
+            } finally {
+                showLoading(false);
+            }
+        });
+
+        // simulateDialogueButton.addEventListener('click', async () => {
+        //     const topicsText = dialogueTopicsInput.value.trim();
+        //     if (!topicsText) {
+        //         showError("请输入至少一个对话主题。");
+        //         return;
+        //     }
+        //     if (!currentPerson1Analysis || !currentPerson2Analysis) {
+        //         showError("请先完成人物特征分析。");
+        //         return;
+        //     }
+
+        //     const topics = topicsText.split('\n').map(t => t.trim()).filter(t => t.length > 0);
+        //     if (topics.length === 0) {
+        //         showError("请输入有效的话题。");
+        //         return;
+        //     }
+
+        // });
+
+        function showLoading(isLoading, message = "AI 正在分析中，请稍候...") {
+            if (isLoading) {
+                loadingIndicator.classList.remove('hidden');
+                loadingIndicator.querySelector('p').textContent = message;
+                analyzeButton.disabled = true;
+                analyzeButton.classList.add('opacity-50', 'cursor-not-allowed');
+                if(simulateDialogueButton) {
+                    simulateDialogueButton.disabled = true;
+                    simulateDialogueButton.classList.add('opacity-50', 'cursor-not-allowed');
+                }
+            } else {
+                loadingIndicator.classList.add('hidden');
+                analyzeButton.disabled = false;
+                analyzeButton.classList.remove('opacity-50', 'cursor-not-allowed');
+                 if(simulateDialogueButton) {
+                    simulateDialogueButton.disabled = false;
+                    simulateDialogueButton.classList.remove('opacity-50', 'cursor-not-allowed');
+                }
+            }
+        }
+        
+
+        function updatePersonAnalysisUI(element, analysis, personLabel) {
+            if (!analysis) {
+                element.innerHTML = `<p>未能获取${personLabel}的分析结果。</p>`;
+                return;
+            }
+            const sanitize = (str) => str ? String(str).replace(/</g, "&lt;").replace(/>/g, "&gt;") : '';
+            const traitsHtml = (analysis.fictional_bazi_traits && Array.isArray(analysis.fictional_bazi_traits))
+                ? analysis.fictional_bazi_traits.map(trait => `<li>${sanitize(trait)}</li>`).join('')
+                : '<li>无</li>';
+            const birthdayHtml = analysis.birthday ? `<p><strong>生日:</strong> ${sanitize(analysis.birthday)}</p>` : '';
+
+            element.innerHTML = `
+                <p><strong>猜测性别:</strong> ${sanitize(analysis.guessed_gender) || '未知'}</p>
+                ${birthdayHtml}
+                <p><strong>视觉描述:</strong> ${sanitize(analysis.visual_description) || '无'}</p>
+                <p><strong>趣味特征 (仅供娱乐):</strong></p>
+                <ul class="list-disc list-inside ml-4">
+                    ${traitsHtml}
+                </ul>
+            `;
+        }
+
+        function updateCompatibilityUI(score, explanation) {
+            const sanitize = (str) => str ? String(str).replace(/</g, "&lt;").replace(/>/g, "&gt;") : '';
+            compatibilityScoreDiv.textContent = (score !== null && score !== undefined) ? `${sanitize(String(score))}%` : 'N/A';
+            compatibilityExplanationDiv.innerHTML = `<p>${sanitize(explanation) || '未能生成匹配说明。'}</p>`;
+        }
+
+        function renderDialogueResults(dialogueData) {
+            dialogueDisplayArea.innerHTML = '<h3 class="result-title text-center">模拟对话记录</h3>'; // 清空并添加标题
+            if (!dialogueData || !dialogueData.dialogues_by_topic || dialogueData.dialogues_by_topic.length === 0) {
+                dialogueDisplayArea.innerHTML += '<p class="text-slate-500 text-center">未能生成对话内容。</p>';
+                dialogueDisplayArea.classList.remove('hidden');
+                return;
+            }
+
+            dialogueData.dialogues_by_topic.forEach(topicData => {
+                const topicDiv = document.createElement('div');
+                topicDiv.innerHTML = `<h4 class="dialogue-topic">${sanitizeHTML(topicData.topic)}</h4>`;
+                
+                const historyDiv = document.createElement('div');
+                topicData.dialogue_history.forEach(turn => {
+                    const turnDiv = document.createElement('div');
+                    turnDiv.classList.add('dialogue-turn');
+                    // 根据 speaker_id 添加不同的样式，用于区分发言者
+                    // 后端返回的 dialogueData 中应该有 person1_name_used 和 person2_name_used
+                    // 我们需要判断 turn.speaker_name 是 person1_name_used 还是 person2_name_used
+                    if (turn.speaker_name === dialogueData.person1_name_used) {
+                        turnDiv.classList.add('person1');
+                    } else if (turn.speaker_name === dialogueData.person2_name_used) {
+                        turnDiv.classList.add('person2');
+                    }
+
+                    turnDiv.innerHTML = `
+                        <span class="speaker-name">${sanitizeHTML(turn.speaker_name)}:</span>
+                        <span class="utterance">${sanitizeHTML(turn.utterance)}</span>
+                    `;
+                    historyDiv.appendChild(turnDiv);
+                });
+                topicDiv.appendChild(historyDiv);
+                dialogueDisplayArea.appendChild(topicDiv);
+            });
+            dialogueDisplayArea.classList.remove('hidden');
+        }
+
+        function sanitizeHTML(str) {
+            if (!str) return '';
+            const temp = document.createElement('div');
+            temp.textContent = str;
+            return temp.innerHTML;
+        }
+
+        function showError(message) {
+            errorMessageP.textContent = sanitizeHTML(message);
+            errorArea.classList.remove('hidden');
+        }
+    </script>
+</body>
+</html>
