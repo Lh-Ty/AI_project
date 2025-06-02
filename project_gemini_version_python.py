@@ -522,7 +522,7 @@ def analyze_couple_endpoint():
             return {
                 "person1_analysis": person1_full_analysis.dict(),
                 "person2_analysis": person2_full_analysis.dict(),
-                "compatibility_result": compatibility.dict(),
+                "compatibility_result": compatibility,
                 "dialogue": dialogue_result.dict()
             }
 
