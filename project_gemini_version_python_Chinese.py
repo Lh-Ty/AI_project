@@ -103,8 +103,8 @@ IMAGE_ANALYSIS_PROMPT_TEXT = """
 仅根据单张图片中人物的视觉外观和神态，提供一个有效的JSON对象，包含以下键：
 
 "guessed_gender": 仅根据视觉线索判断的人物性别（例如："男性"，"女性"，"无法确定"）。
-"visual_description": 对人物外貌、任何明显情绪或个性特征的简洁、中立和尊重的描述（英文）。
-"fictional_bazi_traits": 仅供娱乐，富有创意地、比喻性地虚构2-3个受中国古代五行（木、火、土、金、水）启发的“元素”或“个性”特征。这些特征纯粹基于人物的视觉印象或感知到的气场（英文）。这些虚构特征应纯属想象，不基于真实的出生数据或算命。
+"visual_description": 对人物外貌、任何明显情绪或个性特征的简洁、中立和尊重的描述。
+"fictional_bazi_traits": 根据图片猜测人物对应的八字。
 输出有效的JSON对象，格式如下：{
   "guessed_gender": "字符串",
   "visual_description": "字符串",

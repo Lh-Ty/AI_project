@@ -104,7 +104,7 @@ Based solely on the person’s visual appearance and demeanor in a single image,
 
 "guessed_gender": Your best guess of the person’s gender based on visual cues only (e.g., "male", "female", "undeterminable").
 "visual_description": A concise, neutral, and respectful description of the person’s appearance and any noticeable emotions or personality traits (in English).
-"fictional_bazi_traits": For entertainment purposes only, creatively and metaphorically invent 2–3 “elemental” or “personality” traits inspired by the ancient Chinese Five Elements (Wood, Fire, Earth, Metal, Water). Base these purely on the person’s visual impression or perceived aura (in English). These fictional traits should be purely imaginative and not based on real birth data or fortune-telling.
+"fictional_bazi_traits": Guess the character's corresponding eight characters based on the picture.
 Output a valid JSON object in the following format:{
   "guessed_gender": "string",
   "visual_description": "string",
