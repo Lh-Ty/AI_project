@@ -386,6 +386,7 @@
                 const results = await response.json();
                 console.log("从后端接收到的结果:", results);
 
+                // Make sure to pass the full analysis objects to the UI update
                 updatePersonAnalysisUI(person1AnalysisDiv, results.person1_analysis, "人物 1");
                 updatePersonAnalysisUI(person2AnalysisDiv, results.person2_analysis, "人物 2");
                 
@@ -431,11 +432,11 @@
                 <p><strong>视觉描述:</strong> ${sanitize(analysis.visual_description) || '无'}</p>
                 <p><strong>用户提供性别:</strong> ${sanitize(analysis.provided_gender) || '未提供'}</p>
                 <p><strong>用户提供生日:</strong> ${sanitize(analysis.provided_birthday) || '未提供'}</p>
-                <p><strong>用户提供爱好:</strong></p>
+                <p><strong>用户提供星座:</strong> ${sanitize(analysis.zodiac_sign) || '未提供'}</p> <p><strong>用户提供爱好:</strong></p>
                 <ul class="list-disc list-inside ml-4">
                     ${hobbiesHtml}
                 </ul>
-                <p><strong>用户提供性格:</strong> ${sanitize(analysis.personality) || 'no'}</p>
+                <p><strong>用户提供性格:</strong> ${sanitize(analysis.provided_personality) || '未提供'}</p>
                 <p><strong>趣味特征 (仅供娱乐):</strong></p>
                 <ul class="list-disc list-inside ml-4">
                     ${traitsHtml}

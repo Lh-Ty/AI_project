@@ -2,6 +2,7 @@
 import os
 import asyncio
 import logging
+from datetime import datetime
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from dotenv import load_dotenv
@@ -33,6 +34,35 @@ CORS(app)
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# --- Helper function for Zodiac Sign ---
+def get_zodiac_sign(month: int, day: int) -> str:
+    if (month == 1 and day >= 20) or (month == 2 and day <= 18):
+        return "水瓶座 (Aquarius)"
+    elif (month == 2 and day >= 19) or (month == 3 and day <= 20):
+        return "双鱼座 (Pisces)"
+    elif (month == 3 and day >= 21) or (month == 4 and day <= 19):
+        return "白羊座 (Aries)"
+    elif (month == 4 and day >= 20) or (month == 5 and day <= 20):
+        return "金牛座 (Taurus)"
+    elif (month == 5 and day >= 21) or (month == 6 and day <= 21):
+        return "双子座 (Gemini)"
+    elif (month == 6 and day >= 22) or (month == 7 and day <= 22):
+        return "巨蟹座 (Cancer)"
+    elif (month == 7 and day >= 23) or (month == 8 and day <= 22):
+        return "狮子座 (Leo)"
+    elif (month == 8 and day >= 23) or (month == 9 and day <= 22):
+        return "处女座 (Virgo)"
+    elif (month == 9 and day >= 23) or (month == 10 and day <= 23):
+        return "天秤座 (Libra)"
+    elif (month == 10 and day >= 24) or (month == 11 and day <= 22):
+        return "天蝎座 (Scorpio)"
+    elif (month == 11 and day >= 23) or (month == 12 and day <= 21):
+        return "射手座 (Sagittarius)"
+    elif (month == 12 and day >= 22) or (month == 1 and day <= 19):
+        return "摩羯座 (Capricorn)"
+    return "未知星座"
+
+
 from typing import Optional, List
 
 # --- Pydantic Models for Structured Output ---
@@ -42,13 +72,17 @@ class ImageAnalysis(BaseModel):
     fictional_bazi_traits: List[str] = Field(description="Fictional elemental traits based on visual appearance (for entertainment only)")
     provided_gender: Optional[str] = Field(default=None, description="Gender provided by the user.")
     provided_birthday: Optional[str] = Field(default=None, description="Birthday provided by the user (YYYY-MM-DD format).")
+    zodiac_sign: Optional[str] = Field(default=None, description="Zodiac sign derived from provided birthday.") # 新增星座字段
     hobbies: Optional[List[str]] = Field(default=None, description="Hobbies provided by the user.")
     personality: Optional[str] = Field(default=None, description="Personality traits provided by the user.")
 
 
+
 class CompatibilityResult(BaseModel):
+    """Represents the couple compatibility result."""
     compatibility_score: int = Field(description="Compatibility score (0-100)")
     compatibility_explanation: str = Field(description="Explanation of the compatibility score (for entertainment only)")
+
 # --- Prompts ---
 IMAGE_ANALYSIS_PROMPT_TEXT = """
 You are a neutral, factual, and precise AI assistant. Please analyze the person in this image.
@@ -71,6 +105,7 @@ Here's the detailed information for Person 1:
 - Provided Information:
   - Gender: {provided_gender1}
   - Birthday: {provided_birthday1}
+  - Zodiac Sign: {zodiac_sign1}
   - Hobbies: {provided_hobbies1}
   - Personality: {provided_personality1}
 
@@ -79,10 +114,11 @@ Here's the detailed information for Person 2:
 - Provided Information:
   - Gender: {provided_gender2}
   - Birthday: {provided_birthday2}
+  - Zodiac Sign: {zodiac_sign2}
   - Hobbies: {provided_hobbies2}
   - Personality: {provided_personality2}
 
-Considering both the AI's visual analysis (guessed gender, visual description, fictional bazi traits) and the user-provided information (gender, birthday, hobbies, personality), generate:
+Considering all the available information (AI's visual analysis, user-provided gender, birthday, zodiac sign, hobbies, and personality), generate:
 1. A "compatibility score" between 0-100.
 2. A short, positive, fun explanation focusing on how their combined traits and interests might complement each other, with a creative and entertaining tone.
 Emphasize that this is for creative entertainment only and not real relationship advice.
@@ -136,8 +172,8 @@ async def analyze_single_image_async(image_base64: str, person_identifier: str) 
         raise
 
 async def calculate_compatibility_async(
-    analysis1_visual_data: dict, provided_data1: dict,
-    analysis2_visual_data: dict, provided_data2: dict
+    analysis1_visual_data: dict, provided_data1: dict, full_analysis1: ImageAnalysis,
+    analysis2_visual_data: dict, provided_data2: dict, full_analysis2: ImageAnalysis
 ) -> CompatibilityResult:
     logger.info("Calculating couple compatibility...")
     prompt_template = ChatPromptTemplate.from_template(COMPATIBILITY_PROMPT_TEXT)
@@ -152,12 +188,14 @@ async def calculate_compatibility_async(
             "analysis1_visual_json_str": analysis1_visual_json_str,
             "provided_gender1": provided_data1.get('gender', '未提供'),
             "provided_birthday1": provided_data1.get('birthday', '未提供'),
+            "zodiac_sign1": full_analysis1.zodiac_sign or '未提供', # 使用完整的分析对象中的星座
             "provided_hobbies1": provided_data1.get('hobbies', '未提供'),
             "provided_personality1": provided_data1.get('personality', '未提供'),
             
             "analysis2_visual_json_str": analysis2_visual_json_str,
             "provided_gender2": provided_data2.get('gender', '未提供'),
             "provided_birthday2": provided_data2.get('birthday', '未提供'),
+            "zodiac_sign2": full_analysis2.zodiac_sign or '未提供', # 使用完整的分析对象中的星座
             "provided_hobbies2": provided_data2.get('hobbies', '未提供'),
             "provided_personality2": provided_data2.get('personality', '未提供'),
         })
@@ -210,6 +248,23 @@ def analyze_couple_endpoint():
                 analysis2_visual_task
             )
 
+            # Determine zodiac sign from provided birthday
+            zodiac_sign1 = None
+            if provided_data1['birthday']:
+                try:
+                    bday1 = datetime.strptime(provided_data1['birthday'], '%Y-%m-%d')
+                    zodiac_sign1 = get_zodiac_sign(bday1.month, bday1.day)
+                except ValueError:
+                    logger.warning(f"Invalid birthday format for person 1: {provided_data1['birthday']}")
+            
+            zodiac_sign2 = None
+            if provided_data2['birthday']:
+                try:
+                    bday2 = datetime.strptime(provided_data2['birthday'], '%Y-%m-%d')
+                    zodiac_sign2 = get_zodiac_sign(bday2.month, bday2.day)
+                except ValueError:
+                    logger.warning(f"Invalid birthday format for person 2: {provided_data2['birthday']}")
+
             # Combine visual analysis with user-provided data for each person
             # Create Pydantic objects for validation and consistent structure
             person1_full_analysis = ImageAnalysis(
@@ -218,6 +273,7 @@ def analyze_couple_endpoint():
                 fictional_bazi_traits=person1_visual_analysis.get('fictional_bazi_traits', []),
                 provided_gender=provided_data1['gender'],
                 provided_birthday=provided_data1['birthday'],
+                zodiac_sign=zodiac_sign1, # 添加计算出的星座
                 hobbies=provided_data1['hobbies'],
                 personality=provided_data1['personality']
             )
@@ -227,20 +283,20 @@ def analyze_couple_endpoint():
                 fictional_bazi_traits=person2_visual_analysis.get('fictional_bazi_traits', []),
                 provided_gender=provided_data2['gender'],
                 provided_birthday=provided_data2['birthday'],
+                zodiac_sign=zodiac_sign2, # 添加计算出的星座
                 hobbies=provided_data2['hobbies'],
                 personality=provided_data2['personality']
             )
             
             compatibility = await calculate_compatibility_async(
-                person1_visual_analysis, provided_data1,
-                person2_visual_analysis, provided_data2
+                person1_visual_analysis, provided_data1, person1_full_analysis, # 传递完整的分析对象
+                person2_visual_analysis, provided_data2, person2_full_analysis  # 传递完整的分析对象
             )
             
             return {
                 "person1_analysis": person1_full_analysis.dict(),
                 "person2_analysis": person2_full_analysis.dict(),
                 "compatibility_result": compatibility
-
             }
 
         result_data = asyncio.run(_run_analysis_pipeline())
