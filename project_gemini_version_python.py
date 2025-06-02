@@ -5,14 +5,15 @@ import logging
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from dotenv import load_dotenv
-
+from typing import List, Optional, Dict, Any
 # LangChain Imports
 from langchain_google_genai import ChatGoogleGenerativeAI
-from langchain_core.messages import HumanMessage
+from langchain_core.messages import HumanMessage ,AIMessage, SystemMessage
 from langchain_core.output_parsers import JsonOutputParser
+from langchain_core.output_parsers.string import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
-from langchain_core.pydantic_v1 import BaseModel, Field
-
+from langchain_core.pydantic_v1 import BaseModel, Field ,ValidationError
+from langchain_community.chat_models.tongyi import ChatTongyi
 def init():
     os.environ['HTTPS_PROXY'] = 'http://127.0.0.1:7890'
     os.environ["HTTP_PROXY"] = 'http://127.0.0.1:7890'
@@ -21,6 +22,7 @@ def init():
     os.environ["LANGSMITH_TRACING_V2"] = "true"
     os.environ["LANGSMITH_API_KEY"] = "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" # 替换为你的实际API密钥
     os.environ["LANGSMITH_PROJECT"] = "AI Couple Compatibility Analyzer"
+    os.environ["DASHSCOPE_API_KEY"] = 'sk-c7bcac6af25d4fe8ad9907a1049b1363'
 init()
 # --- Load Environment Variables ---
 load_dotenv()
@@ -33,7 +35,6 @@ CORS(app)
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-from typing import Optional, List
 
 # --- Pydantic Models for Structured Output ---
 class ImageAnalysis(BaseModel):
@@ -49,6 +50,8 @@ class ImageAnalysis(BaseModel):
 class CompatibilityResult(BaseModel):
     compatibility_score: int = Field(description="Compatibility score (0-100)")
     compatibility_explanation: str = Field(description="Explanation of the compatibility score (for entertainment only)")
+
+
 # --- Prompts ---
 IMAGE_ANALYSIS_PROMPT_TEXT = """
 You are a neutral, factual, and precise AI assistant. Please analyze the person in this image.
@@ -98,14 +101,21 @@ Output JSON with these keys:
 if not os.getenv("GOOGLE_API_KEY"):
     logger.error("CRITICAL: GOOGLE_API_KEY environment variable not set.")
     
-multimodal_llm = ChatGoogleGenerativeAI(
-    model="gemini-2.0-flash",
+# multimodal_llm = ChatGoogleGenerativeAI(
+#     model="gemini-2.0-flash",
+#     temperature=0.7,
+#     generation_config={"response_mime_type": "application/json"}
+# )
+multimodal_llm =ChatTongyi(
     temperature=0.7,
-    generation_config={"response_mime_type": "application/json"}
+    generation_config={"response_mime_type": "application/json"},
 )
-
-text_llm = ChatGoogleGenerativeAI(
-    model="gemini-2.0-flash",
+# text_llm = ChatGoogleGenerativeAI(
+#     model="gemini-2.0-flash",
+#     temperature=0.7,
+#     generation_config={"response_mime_type": "application/json"}
+# )
+text_llm = ChatTongyi(
     temperature=0.7,
     generation_config={"response_mime_type": "application/json"}
 )
