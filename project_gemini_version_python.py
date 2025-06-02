@@ -316,6 +316,9 @@ async def run_couple_dialogue_async(
             fictional_traits_str_current = ", ".join(current_speaker_persona.fictional_bazi_traits)
             fictional_traits_str_other = ", ".join(other_speaker_persona.fictional_bazi_traits)
 
+            current_speaker_gender_info = f"- Gender: {current_speaker_persona.provided_gender}" if current_speaker_persona.provided_gender else "- Gender: Not provided"
+            other_speaker_gender_info = f"- Gender: {other_speaker_persona.provided_gender}" if other_speaker_persona.provided_gender else "- Gender: Not provided"
+            
             current_speaker_birthday_info = f"- Birthday: {current_speaker_persona.provided_birthday} (Zodiac: {current_speaker_persona.zodiac_sign})" if current_speaker_persona.provided_birthday else "- Birthday: Not provided"
             other_speaker_birthday_info = f"- Birthday: {other_speaker_persona.provided_birthday} (Zodiac: {other_speaker_persona.zodiac_sign})" if other_speaker_persona.provided_birthday else "- Birthday: Not provided"
             
@@ -324,6 +327,7 @@ async def run_couple_dialogue_async(
 
             current_speaker_personality_info = f"- Personality: {current_speaker_persona.personality}" if current_speaker_persona.personality else "- Personality: Not provided"
             other_speaker_personality_info = f"- Personality: {other_speaker_persona.personality}" if other_speaker_persona.personality else "- Personality: Not provided"
+
 
             conversation_history_segment = "\n".join(
                 [f"{turn.speaker_name}: {turn.utterance}" for turn in current_dialogue_history_for_topic]
@@ -401,8 +405,8 @@ async def simulate_couple_dialogue(
         if not person1_analysis_data or not person2_analysis_data:
             raise ValueError("Missing person analysis data (person1_analysis or person2_analysis)")
 
-        topics = ["Love", "Family", "Future Plans", "Hobbies", "Travel Experiences"]  # Default topics
-        
+        # topics = ["Love", "Family", "Future Plans", "Hobbies", "Travel Experiences"]  # Default topics
+        topics = ["Personal Background & Family","Values & Beliefs","Interests & Hobbies","Emotional Needs & Communication","Future Plans & Lifestyle","Personal Growth & Self-Awareness","Social Life & Relationships","Intimacy & Sexuality","Culture & Traditions","Fun & Humor"]
         num_turns_per_topic = 2
         
         person1_name="Person 1"
